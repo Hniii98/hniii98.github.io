@@ -2,10 +2,10 @@
 layout: about
 title: 关于我
 permalink: /
-subtitle: 课程报告 · 项目记录 · 学习笔记
+
 
 selected_papers: false
-social: true
+social: false
 
 announcements:
   enabled: false
@@ -20,8 +20,4 @@ latest_posts:
 
 我希望通过这个网站，记录每个项目的思考过程、使用的方法以及最终成果。
 
-### 你可以在这里找到
 
-- **课程报告**：各门课程的 assignment 与完整报告。
-- **项目记录**：项目背景、实现过程和结果展示。
-- **学习笔记**：学习中的理解、总结与反思。
