@@ -1,0 +1,231 @@
+<!DOCTYPE html> <html lang="cn"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Nano-vLLM 架构解析 part2-model | 学习博客 </title> <meta name="author" content="Kunhuang Zhu"> <meta name="description" content="Nano-vLLM 架构的详细解析之model篇"> <meta name="keywords" content="jekyll, jekyll-theme, academic-website, portfolio-website"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=3116ba77db9ee1581d05bb3e86fbf7f1"> <link rel="canonical" href="https://hniii98.github.io/blog/2026/Nano-vLLM%E6%9E%B6%E6%9E%84%E8%A7%A3%E6%9E%902/"> <script src="/assets/js/theme.js?v=5286c3e4c334d0ecb8fc0c40ff4fa7ec"></script> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-native.css?v=5847e5ed4a4568527aa6cfab446049ca" media="none" id="highlight_theme_dark"> <script>
+    initTheme();
+  </script> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> 学习博客 </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">关于我 </a> </li> <li class="nav-item active"> <a class="nav-link" href="/blog/">blog </a> </li> <li class="nav-item "> <a class="nav-link" href="/repositories/">repositories </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> <li class="toggle-container"> <button id="light-toggle" type="button" title="Change theme" aria-label="Change color theme"> <i class="fa-half-sun-moon" id="light-toggle-system"></i> <i class="fa-solid fa-moon" id="light-toggle-dark"></i> <i class="fa-solid fa-sun" id="light-toggle-light"></i> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Nano-vLLM 架构解析 part2-model</h1> <p class="post-meta"> Created on October 19, 2026 </p> <p class="post-tags"> <a href="/blog/2026"> <i class="fa-solid fa-calendar fa-sm"></i> 2026 </a>   ·   <a href="/blog/tag/llm"> <i class="fa-solid fa-hashtag fa-sm"></i> LLM</a>   <a href="/blog/tag/vllm"> <i class="fa-solid fa-hashtag fa-sm"></i> vLLM</a>   <a href="/blog/tag/%E6%9E%B6%E6%9E%84%E8%A7%A3%E6%9E%90"> <i class="fa-solid fa-hashtag fa-sm"></i> 架构解析</a>   ·   <a href="/blog/category/code"> <i class="fa-solid fa-tag fa-sm"></i> code</a> </p> </header> <article class="post-content"> <div id="markdown-content"> <ul> <li>代码版本: bb823b3</li> </ul> <h2 id="1-模型结构">1. 模型结构</h2> <figure style="text-align: center;"> <img src="/assets/img/blog_assets/2026-10-21/network.png" alt="1：Qwen3模型组件组成图。" style="width: 70%; display: block; margin: 0 auto;"> <figcaption> 图 1：Qwen3模型结构图。 </figcaption> </figure> <p><a href="https://github.com/GeeeekExplorer/nano-vllm" rel="external nofollow noopener" target="_blank">Nano-vLLM</a>支持的 Qwen3 0.6B 模型主体结构由图1所示，模型采用<strong>decode-only</strong>的结构。总体上，Nano-vLLM由核心的<strong>Attention</strong>、<strong>MLP</strong>、<strong>RMSNorm</strong>部件构成。当<strong>config</strong>中设置权重共享时，<strong>embedding</strong>和<strong>lm head</strong>共享权重。</p> <p>Nano-vLLM在设计时，模型前向推理时候的分片逻辑包装在各个组件中，分片逻辑对于<strong>LMEngine</strong>是透明的。</p> <h2 id="2-核心部件">2. 核心部件</h2> <h3 id="21-embedding-与-lmhead">2.1 embedding 与 lmhead</h3> <p><strong>embedding</strong> 本质上是一个索引的规约操作。单机多卡环境下，不同的<strong>rank</strong>负责各自<strong>shard</strong>的权重矩阵。前向时，不同<strong>rank</strong>接收相同的输入，根据<strong>shard</strong>范围构建<strong>mask</strong>, 将<strong>shard</strong>范围外的的输入映射到<strong>shard</strong>内的起始位置。规约操作完成后，再利用相同的<strong>mask</strong>把无效的权重置0避免与真实的起始索引对应的权重混淆。最后，通过分布式原语<strong>all_reduce</strong>得到最终的<strong>embedding</strong></p> <p><strong>lm head</strong>则实际上执行一个矩阵乘法。单机多卡环境下，以采用权重共享的情况为例，权重形状为</p> \[W_{\mathrm{embedding}} \in \mathbb{R}^{\mathrm{shard} \times \mathrm{hidden\_size}}.\] <p><strong>Pytorch</strong>中<strong>linear</strong>对于权重的存储正好是转置的，因此共享权重是直接使用<strong>embedding</strong>中分片好的矩阵。</p> <p>随后，计算得出的<strong>logits</strong>在输出维度上是分片的，因此通过分布式原语<strong>gather</strong>在主进程上得到最终的<strong>logits</strong></p> <blockquote> <p>在<strong>model</strong>的实现中，下层得到的输入由上层保证正确性，当前层只需考虑自身的分片策略带来的影响即可。例如上文提到的<strong>lm head</strong>, 它的输入由<strong>Attention</strong>中最后的<strong>o_proj</strong>保证不同<strong>rank</strong>之间传给<strong>lm head</strong>的输入是正确的，<strong>lm head</strong>只需要考虑<strong>embedding</strong>权重矩阵分片带来的影响。</p> </blockquote> <h3 id="22-qwen3mlp">2.2 Qwen3MLP</h3> <p><strong>Qwen3</strong>由<strong>MergedColumnParallelLinear</strong>、<strong>RowParallelLinear</strong>、<strong>SiluAndMul</strong>3个部件构成。本质上是对输入做一个<strong>SwiGLU</strong>，表达式如下</p> \[\operatorname{SwiGLU}(X) = \Bigl[ \operatorname{SiLU}\bigl(XW_{\mathrm{gate}}^{\top}\bigr) \odot \bigl(XW_{\mathrm{up}}^{\top}\bigr) \Bigr] W_{\mathrm{down}}^{\top}.\] <p><strong>Nano-vLLM</strong>通过<strong>MergedColumnParallelLinear</strong>将<strong>rank</strong>负责的<strong>gate</strong>和<strong>up</strong>映射权重矩阵<strong>shard</strong>拼接在一次，通过一次矩阵完成。</p> \[X\bigl(W_{\mathrm{gate\_up}}^{(r)}\bigr)^{\top} = \Bigl[ X\bigl(W_{\mathrm{gate}}^{(r)}\bigr)^{\top} \;\Bigm|\; X\bigl(W_{\mathrm{up}}^{(r)}\bigr)^{\top} \Bigr].\] <p>其中，当前 rank 的权重分片为</p> \[W^{(r)} = W\bigl[rI/P : (r+1)I/P,\;:\bigr] \in \mathbb{R}^{(I/P) \times H}.\] <ul> <li>$H$：输入特征维度，对应 <code class="language-plaintext highlighter-rouge">hidden_size</code>。</li> <li>$I$：单个 gate 或 up 投影的完整输出维度，对应 <code class="language-plaintext highlighter-rouge">intermediate_size</code>。</li> <li>$P$：张量并行 GPU 数，对应 <code class="language-plaintext highlighter-rouge">tp_size</code>。这里假设 $I$ 能被 $P$ 整除。</li> <li>$r$：当前 rank，满足 $r \in {0, \ldots, P-1}$。</li> </ul> <p>之后，在<strong>SiluAndMul</strong>模块中对输入进行<strong>chunk</strong>得到各自的分片，计算本卡的门控结果 $Z^{(r)}$。</p> <p>最后，由于前者计算的结果是在<strong>output_size</strong>进行了分片，因此最后对于 $W_{\mathrm{down}}^{\top}$ 的矩阵乘法需要在对应方向上进行切片，来保证分块矩阵乘法的正确性。相关表达式统一写为</p> \[\begin{aligned} W_{\mathrm{down}}^{(r)} &amp;= W_{\mathrm{down}}\bigl[:,\;rI/P : (r+1)I/P\bigr], \\[6pt] Z^{(r)} &amp;= \operatorname{SiLU}\Bigl(X\bigl(W_{\mathrm{gate}}^{(r)}\bigr)^{\top}\Bigr) \odot \Bigl(X\bigl(W_{\mathrm{up}}^{(r)}\bigr)^{\top}\Bigr), \\[6pt] Y &amp;= \sum_{r=0}^{P-1} Z^{(r)} \bigl(W_{\mathrm{down}}^{(r)}\bigr)^{\top} \\[6pt] &amp;= \sum_{r=0}^{P-1} \Bigl[ \operatorname{SiLU}\Bigl(X\bigl(W_{\mathrm{gate}}^{(r)}\bigr)^{\top}\Bigr) \odot \Bigl(X\bigl(W_{\mathrm{up}}^{(r)}\bigr)^{\top}\Bigr) \Bigr] \bigl(W_{\mathrm{down}}^{(r)}\bigr)^{\top}. \end{aligned}\] <ul> <li>求和通过分布式的reduce原语实现</li> </ul> <h3 id="qwen3attention">Qwen3Attention</h3> <p><strong>Qwen3Attention</strong> 在实现 <strong>qkv</strong> 投影的时候，处理方式和上文的 <strong>gate_up</strong> 一样，只是这里需要针对<strong>kv head</strong>共享做权重矩阵的的切片处理。</p> <p>因为<strong>causal mask</strong>，每个 <strong>token</strong> 的输出只依赖自己及之前位置的 <strong>K、V</strong>，后续 <strong>token</strong> 不会改变它已经算好的结果，所以 <strong>chunked prefill</strong> 成立。因此在<strong>attention</strong>计算的分支中，每次在送入<strong>flash attention</strong> 计算之前，先追加写入<strong>cache block</strong>本轮计算出的<strong>kv</strong>。</p> </div> </article> <br> <hr> <br> <h2 class="text-3xl font-semibold mb-4 mt-12">Enjoy Reading This Article?</h2> <p class="mb-2">Here are some more articles you might like to read next:</p> <ul class="list-disc pl-7 my-3 space-y-2 marker:text-[var(--global-theme-color)]"> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="https://blog.google/technology/ai/google-gemini-update-flash-ai-assistant-io-2024/" target="_blank" rel="noopener noreferrer">Google Gemini updates: Flash 1.5, Gemma 2 and Project Astra</a> <svg width="1rem" height="1rem" viewbox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"> <path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path> </svg> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="https://medium.com/@al-folio/displaying-external-posts-on-your-al-folio-blog-b60a1d241a0a?source=rss-17feae71c3c4------2" target="_blank" rel="noopener noreferrer">Displaying External Posts on Your al-folio Blog</a> <svg width="1rem" height="1rem" viewbox="0 0 30 30" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"> <path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path> </svg> </li> <li class="leading-relaxed"> <a class="underline decoration-1 hover:text-[var(--global-hover-color)]" href="/blog/2026/Nano-vLLM%E6%9E%B6%E6%9E%84%E8%A7%A3%E6%9E%90/">Nano-vLLM 架构解析 part1-engine</a> </li> </ul> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Kunhuang Zhu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. Photos from <a href="https://unsplash.com" target="_blank" rel="external nofollow noopener">Unsplash</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-关于我",
+    title: "关于我",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-blog",
+          title: "blog",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/blog/";
+          },
+        },{id: "nav-repositories",
+          title: "repositories",
+          description: "我的 GitHub 统计与公开代码仓库。",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/repositories/";
+          },
+        },{id: "nav-cv",
+          title: "CV",
+          description: "",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "post-nano-vllm-架构解析-part2-model",
+        
+          title: "Nano-vLLM 架构解析 part2-model",
+        
+        description: "Nano-vLLM 架构的详细解析之model篇",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/blog/2026/Nano-vLLM%E6%9E%B6%E6%9E%84%E8%A7%A3%E6%9E%902/";
+          
+        },
+      },{id: "post-nano-vllm-架构解析-part1-engine",
+        
+          title: "Nano-vLLM 架构解析 part1-engine",
+        
+        description: "Nano-vLLM 架构的详细解析之engine篇",
+        section: "Posts",
+        handler: () => {
+          
+            window.location.href = "/blog/2026/Nano-vLLM%E6%9E%B6%E6%9E%84%E8%A7%A3%E6%9E%90/";
+          
+        },
+      },{id: "post-google-gemini-updates-flash-1-5-gemma-2-and-project-astra",
+        
+          title: 'Google Gemini updates: Flash 1.5, Gemma 2 and Project Astra <svg width="1.2rem" height="1.2rem" top=".5rem" viewbox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+        
+        description: "We’re sharing updates across our Gemini family of models and a glimpse of Project Astra, our vision for the future of AI assistants.",
+        section: "Posts",
+        handler: () => {
+          
+            window.open("https://blog.google/technology/ai/google-gemini-update-flash-ai-assistant-io-2024/", "_blank");
+          
+        },
+      },{id: "post-displaying-external-posts-on-your-al-folio-blog",
+        
+          title: 'Displaying External Posts on Your al-folio Blog <svg width="1.2rem" height="1.2rem" top=".5rem" viewbox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+        
+        description: "",
+        section: "Posts",
+        handler: () => {
+          
+            window.open("https://medium.com/@al-folio/displaying-external-posts-on-your-al-folio-blog-b60a1d241a0a?source=rss-17feae71c3c4------2", "_blank");
+          
+        },
+      },{id: "books-the-godfather",
+          title: 'The Godfather',
+          description: "",
+          section: "Books",handler: () => {
+              window.location.href = "/books/the_godfather/";
+            },},{id: "news-a-simple-inline-announcement",
+          title: 'A simple inline announcement.',
+          description: "",
+          section: "News",},{id: "news-a-long-announcement-with-details",
+          title: 'A long announcement with details',
+          description: "",
+          section: "News",handler: () => {
+              window.location.href = "/news/announcement_2/";
+            },},{id: "news-a-simple-inline-announcement-with-markdown-emoji-sparkles-smile",
+          title: 'A simple inline announcement with Markdown emoji! <img class="emoji" title=":sparkles:" alt=":sparkles:" src="https://github.githubassets.com/images/icons/emoji/unicode/2728.png" height="20" width="20"> <img class="emoji" title=":smile:" alt=":smile:" src="https://github.githubassets.com/images/icons/emoji/unicode/1f604.png" height="20" width="20">',
+          description: "",
+          section: "News",},{id: "projects-project-1",
+          title: 'project 1',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/1_project/";
+            },},{id: "projects-project-2",
+          title: 'project 2',
+          description: "a project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/2_project/";
+            },},{id: "projects-project-3-with-very-long-name",
+          title: 'project 3 with very long name',
+          description: "a project that redirects to another website",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/3_project/";
+            },},{id: "projects-project-4",
+          title: 'project 4',
+          description: "another without an image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/4_project/";
+            },},{id: "projects-project-5",
+          title: 'project 5',
+          description: "a project with a background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/5_project/";
+            },},{id: "projects-project-6",
+          title: 'project 6',
+          description: "a project with no image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/6_project/";
+            },},{id: "projects-project-7",
+          title: 'project 7',
+          description: "with background image",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/7_project/";
+            },},{id: "projects-project-8",
+          title: 'project 8',
+          description: "an other project with a background image and giscus comments",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/8_project/";
+            },},{id: "projects-project-9",
+          title: 'project 9',
+          description: "another project with an image 🎉",
+          section: "Projects",handler: () => {
+              window.location.href = "/projects/9_project/";
+            },},{id: "teachings-data-science-fundamentals",
+          title: 'Data Science Fundamentals',
+          description: "This course covers the foundational aspects of data science, including data collection, cleaning, analysis, and visualization. Students will learn practical skills for working with real-world datasets.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/teachings/data-science-fundamentals/";
+            },},{id: "teachings-introduction-to-machine-learning",
+          title: 'Introduction to Machine Learning',
+          description: "This course provides an introduction to machine learning concepts, algorithms, and applications. Students will learn about supervised and unsupervised learning, model evaluation, and practical implementations.",
+          section: "Teachings",handler: () => {
+              window.location.href = "/teachings/introduction-to-machine-learning/";
+            },},{
+        id: 'social-cv',
+        title: 'CV',
+        section: 'Socials',
+        handler: () => {
+          window.open("/assets/pdf/%E6%9C%B1%E5%A0%83%E7%85%8C-%E7%AE%80%E5%8E%86.pdf", "_blank");
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%79%6F%75@%65%78%61%6D%70%6C%65.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-inspire',
+        title: 'Inspire HEP',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://inspirehep.net/authors/1010907", "_blank");
+        },
+      },{
+        id: 'social-rss',
+        title: 'RSS Feed',
+        section: 'Socials',
+        handler: () => {
+          window.open("/feed.xml", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=qc6CJjYAAAAJ", "_blank");
+        },
+      },{
+        id: 'social-custom_social',
+        title: 'Custom_social',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.alberteinstein.com/", "_blank");
+        },
+      },{
+      id: 'light-theme',
+      title: 'Change theme to light',
+      description: 'Change the theme of the site to Light',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("light");
+      },
+    },
+    {
+      id: 'dark-theme',
+      title: 'Change theme to dark',
+      description: 'Change the theme of the site to Dark',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("dark");
+      },
+    },
+    {
+      id: 'system-theme',
+      title: 'Use system default theme',
+      description: 'Change the theme of the site to System Default',
+      section: 'Theme',
+      handler: () => {
+        setThemeSetting("system");
+      },
+    },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>
