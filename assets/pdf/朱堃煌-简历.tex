@@ -1,0 +1,84 @@
+% !TeX program = xelatex
+% !TeX encoding = UTF-8
+\ifdefined\XeTeXinputencoding
+  \XeTeXinputencoding "utf8"
+\fi
+\documentclass[UTF8,10pt,a4paper,fontset=none]{ctexart}
+
+% Explicit Windows CJK fonts: regular SimSun, bold SimHei, italic KaiTi.
+\setCJKmainfont[Path=C:/Windows/Fonts/,BoldFont=simhei.ttf,ItalicFont=simkai.ttf]{simsun.ttc}
+\setCJKsansfont[Path=C:/Windows/Fonts/,BoldFont=msyhbd.ttc]{msyh.ttc}
+\setCJKmonofont[Path=C:/Windows/Fonts/]{simsun.ttc}
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+
+\usepackage[margin=1.65cm]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\usepackage{amsmath}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\linespread{1.10}
+\titleformat{\section}{\sffamily\bfseries\fontsize{13}{17}\selectfont}{}{0pt}{}[\vspace{2pt}\titlerule]
+\titlespacing*{\section}{0pt}{13pt}{7pt}
+\setlist[itemize]{leftmargin=1.3em,itemsep=3pt,topsep=3pt,parsep=0pt}
+\newcommand{\project}[2]{\par\addvspace{7pt}\noindent{\sffamily\bfseries\fontsize{10.5}{14}\selectfont #1}\hfill {\small #2}\par\nobreak\vspace{2pt}}
+\newcommand{\lk}[2]{\href{#1}{\underline{#2}}}
+\begin{document}
+\begin{center}
+{\sffamily\bfseries\fontsize{25}{30}\selectfont 朱堃煌}\\[5pt]
+18060990375\quad |\quad \href{mailto:kunhuang_zhu@163.com}{kunhuang\_zhu@163.com}\\[3pt]
+主页：\lk{https://hniii98.github.io/}{hniii98.github.io}
+\end{center}
+\vspace{-6pt}
+\section{教育经历}
+\textbf{福建理工大学}\hfill 2021.09 -- 2024.07\\
+硕士\quad 计算机技术（人工智能方向）\quad 计算机科学与数学学院\\[3pt]
+\textbf{厦门理工学院}\hfill 2016.09 -- 2020.07\\
+本科\quad 计算机科学与技术\quad 计算机与信息工程学院
+\section{开源贡献}
+\textbf{PyCUDA Windows CUDA 13.x 兼容性修复}\hfill \lk{https://github.com/inducer/pycuda/pull/498}{PR \#498 已合并}
+\begin{itemize}
+\item 为 PyCUDA 上游贡献运行时兼容性修复：优化 DLL 搜索路径解析策略，新增 \texttt{bin/x64} 优先探测与旧版 \texttt{bin} 自动回退，保障跨版本 CUDA 环境下驱动动态库可靠加载。
+\end{itemize}
+\section{项目经历}
+\project{未名 HPC × LCPU AI Infra 训练营}{ }
+{\small\sffamily GPU 算子开发与 FlashKDA 优化}\\
+{\small 代码：\lk{https://github.com/Hniii98/wmhpc-training-camp-x-lcpu-ai-infra-seminars/tree/main/assignment01}{Assignment 1}\enspace |\enspace \lk{https://github.com/Hniii98/wmhpc-training-camp-x-lcpu-ai-infra-seminars/tree/main/assignment02}{Tensor Core \& Pipeline}\enspace |\enspace \lk{https://github.com/Hniii98/FlashKDA/tree/chunk16-profile/profile}{Team 分析}\enspace |\enspace \lk{https://github.com/Hniii98/FlashKDA/tree/kda-chunk32-rescale}{Team 挑战}\enspace |\enspace \lk{https://github.com/Hniii98/FlashKDA/tree/fused_vtile}{fused\_vtile}\\
+报告：\lk{https://github.com/Hniii98/wmhpc-training-camp-x-lcpu-ai-infra-seminars/blob/main/assignment01/assignment01_writeup.pdf}{Assignment 1 writeup}\enspace |\enspace \lk{https://github.com/Hniii98/wmhpc-training-camp-x-lcpu-ai-infra-seminars/blob/main/assignment02/assignment02_writeup.pdf}{Tensor Core \& Pipeline writeup}\enspace |\enspace \lk{https://github.com/Hniii98/wmhpc-training-camp-x-lcpu-ai-infra-seminars/blob/main/assignment02/assignment02_team_writeup.pdf}{Team writeup}\enspace |\enspace \lk{https://github.com/Hniii98/FlashKDA/blob/fused_vtile/BENCHMARK_B300.md}{B300 Benchmark}}
+\begin{itemize}
+\item \textbf{GPU 编程（手写）：}手写 CUDA、Triton 与 TileLang 算子，调优矩阵乘分块与流水级数；在 RTX PRO 6000 的指定测试中，Triton 吞吐达到 234.7 TFLOPS，约为同组 cuBLAS 基线的 99.7\%。
+\item \textbf{算子开发（手写）：}手写 Tensor Core GEMM、TMA 供数与多级流水线，完成融合 RMSNorm 与 NVFP4 量化；在 B300 的报告测试形状下，相对调优后的两步基线获得约 $1.31$--$1.71\times$ 加速。
+\item \textbf{性能分析（Agent 完成）：}使用 Agent 完成 FlashKDA 基准复现、Nsight Compute/SASS 分析与微基准实验，定位状态递推、寄存器溢出和低精度数值范围问题，评估 tcgen05、value 分片及 CHUNK32 rescale 方案。
+\item \textbf{FlashKDA 加速（Agent 实现）：}使用 Agent 实现 fused\_vtile 的 VTile Direct 融合前向内核；在 B300、$T=8192$、$H=64/96$、$D=128$ 的六组定长/变长测试中，相对原 K1/K2 实现加速 $2.17$--$3.13\times$；$H=96$ 定长耗时由 1.7049 ms 降至 0.6328 ms（$2.69\times$）。
+\item \textbf{优化验证（Agent 完成）：}完成 51 项融合内核测试，按 $\mathrm{atol}=\mathrm{rtol}=10^{-2}$ 与 torch/K1/K2/FLA 参考对拍，覆盖状态、尾块和 CUDA Graph 回放；27 个原生 eager/graph 用例通过 Compute Sanitizer memcheck，内存错误为 0。
+\end{itemize}
+\project{大模型基础组件与 FlashAttention-2}{2026.04 -- 2026.08}
+{\small 代码：\lk{https://github.com/Hniii98/cs336/tree/main/assignment1_basics}{CS336 基础组件}\enspace |\enspace \lk{https://github.com/Hniii98/cs336/tree/main/assignment2_systems}{CS336 训练系统}}
+\begin{itemize}
+\item \textbf{BPE 核心：}从零实现并行预分词、字节级词表训练与 Tokenizer；通过 pair $\to$ pre-token 倒排索引增量维护相邻对计数，将每轮合并的计数更新由全量 $O(N)$ 扫描缩减为仅遍历受影响 pre-token。
+\item \textbf{基础组件：}实现 Transformer LM 核心模块、交叉熵与 AdamW，完成模型参数量、激活显存和训练 FLOPs 核算。
+\item \textbf{FlashAttention-2：}以 PyTorch 与 Triton 实现分块 Online Softmax 前向及 dQ/dK/dV 反向，无需显式存储 $N\times N$ 注意力矩阵，将中间显存复杂度由 $O(N^2)$ 降至 $O(Nd)$。
+\item \textbf{通信原语：}从零实现 DDP、优化器状态分片与轻量级 FSDP，通过异步 All-Reduce、跨层权重 All-Gather 预取和梯度 Reduce-Scatter 实现计算通信重叠及分布式训练显存优化。
+\end{itemize}
+\project{MiniTorch 深度学习框架与训练系统}{2026.01 -- 2026.04}
+{\small 代码：\lk{https://github.com/Hniii98/cmu11868/tree/main/hw1}{CUDA 编程}\enspace |\enspace \lk{https://github.com/Hniii98/cmu11868/tree/main/hw2}{MiniTorch 框架}\enspace |\enspace \lk{https://github.com/Hniii98/cmu11868/tree/main/hw3}{Transformer 架构}\enspace |\enspace \lk{https://github.com/Hniii98/cmu11868/tree/main/hw4}{Transformer CUDA 加速}\enspace |\enspace \lk{https://github.com/Hniii98/cmu11868/tree/main/hw5}{分布式训练与并行}}
+\begin{itemize}
+\item \textbf{框架实现：}从零补全计算图拓扑排序与反向传播、Tensor 算子、Linear/MLP、损失函数和训练评估流程，并扩展支持多头注意力与 Transformer。
+\item \textbf{CUDA 加速：}实现融合 Attention Softmax 与 LayerNorm 前后向 CUDA Kernel 并接入 Transformer；相较基础实现分别获得约 $6.5\times/5.5\times$、$15.8\times/3.7\times$ 加速，端到端训练提速约 $1.1\times$。
+\item \textbf{数据并行：}基于 torch.distributed 与多进程实现数据无重叠切分、双卡进程组和逐参数 All-Reduce 梯度平均；双卡训练时间及吞吐提升达到约 $1.5\times$。
+\end{itemize}
+\project{一生一芯 RISC-V 系统与自主 NPC 处理器}{2025.05 -- 2026.01}
+{\small 代码：\lk{https://github.com/Hniii98/ysyx-workbench}{Hniii98/ysyx-workbench}\quad 学号：ysyx\_25040128，已通过 C 阶段考核（\lk{https://fa45epzd9c7.feishu.cn/share/base/query/shrcnJAgaE4ZG4y5OsB1iAcwyjc}{查询}）}
+\begin{itemize}
+\item \textbf{系统基础：}完成 Linux/C、Verilator 与数字电路实践；实现支持 RV32IM 的 NEMU、AM 运行时与基础设施，覆盖设备 I/O、异常处理及 RT-Thread 运行。
+\item \textbf{自主 NPC：}独立使用 Verilog 实现单周期 RV32E NPC，完成 PC、译码、ALU、寄存器堆、访存、写回及 CSR 模块，支持 ECALL/MRET 等系统指令。
+\item \textbf{验证工具链：}基于 Verilator 与 DPI-C 构建仿真环境，接入简易调试器、FTrace 和单步/批量执行；以 NEMU 为参考模型进行逐指令差分测试。
+\end{itemize}
+\section{学术成果}
+\begin{itemize}
+\item \textbf{朱堃煌}，孙博，毛国君．面向无人机图像场景的小目标检测模型[J]．计算机工程与应用，2024，60(15)：243--251．\lk{https://doi.org/10.3778/j.issn.1002-8331.2401-0209}{DOI: 10.3778/j.issn.1002-8331.2401-0209}。
+\end{itemize}
+\end{document}
